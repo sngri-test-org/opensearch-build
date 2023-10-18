@@ -12,8 +12,8 @@ def docker_images = [
 
 def docker_args = [
     "tar": "-u 1000",
-    "rpm": "--entrypoint=/usr/sbin/init -u root --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:ro",
-    "deb": "--entrypoint=/usr/sbin/init -u root --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:ro",
+    "rpm": "--entrypoint=/usr/lib/systemd/systemd -u root --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host",
+    "deb": "--entrypoint=/usr/lib/systemd/systemd -u root --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host",
     "zip": "-u ContainerAdministrator",
 ]
 
@@ -33,14 +33,6 @@ pipeline {
         BUILD_MANIFEST = "build-manifest.yml"
         BUILD_JOB_NAME = "distribution-build-opensearch"
         ARTIFACT_BUCKET_NAME = credentials('jenkins-artifact-bucket-name')
-    }
-    triggers {
-        parameterizedCron '''
-            H */3 * * * %TEST_MANIFEST=2.10.0/opensearch-2.10.0-concurrent-search-test.yml;BUILD_MANIFEST_URL=https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.10.0/latest/linux/arm64/tar/builds/opensearch/manifest.yml
-            H */3 * * * %TEST_MANIFEST=2.10.0/opensearch-2.10.0-concurrent-search-test.yml;BUILD_MANIFEST_URL=https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.10.0/latest/linux/x64/tar/builds/opensearch/manifest.yml
-            H */3 * * * %TEST_MANIFEST=2.10.0/opensearch-2.10.0-test.yml;BUILD_MANIFEST_URL=https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.10.0/latest/linux/arm64/tar/builds/opensearch/manifest.yml
-            H */3 * * * %TEST_MANIFEST=2.10.0/opensearch-2.10.0-test.yml;BUILD_MANIFEST_URL=https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.10.0/latest/linux/x64/tar/builds/opensearch/manifest.yml
-            '''
     }
     parameters {
         string(
@@ -198,22 +190,26 @@ pipeline {
                                                         switchUserNonRoot: "${switch_user_non_root}"
                                                     )
                                                     String closeCommentMessage = "Closing the issue as the Integration Test passed for ${local_component}<br>Version: ${version}<br>Distribution: ${distribution}<br>Architecture: ${architecture}<br>Platform: ${platform}<br><br>Please check the logs: ${RUN_DISPLAY_URL}<br><br> *"
-                                                    closeGithubIssue(
-                                                        repoUrl: buildManifestObj.getRepo("${local_component}"),
-                                                        issueTitle: "[AUTOCUT] Integration Test failed for ${local_component}: ${version} ${distribution} distribution",
-                                                        closeComment: closeCommentMessage,
-                                                        label: "autocut,v${version},integ-test-failure"
-                                                    )
+                                                    if (env.distribution == 'tar') {
+                                                        closeGithubIssue(
+                                                            repoUrl: buildManifestObj.getRepo("${local_component}"),
+                                                            issueTitle: "[AUTOCUT] Integration Test failed for ${local_component}: ${version} ${distribution} distribution",
+                                                            closeComment: closeCommentMessage,
+                                                            label: "autocut,v${version},integ-test-failure"
+                                                        )
+                                                    }
                                                 }
                                             } catch (e) {
                                                 echo "Error running integtest for component ${local_component}, creating Github issue"
                                                 String issueBodyMessage = "The integration test failed at distribution level for component ${local_component}<br>Version: ${version}<br>Distribution: ${distribution}<br>Architecture: ${architecture}<br>Platform: ${platform}<br><br>Please check the logs: ${RUN_DISPLAY_URL}<br><br> * Test-report manifest:*<br> - https://ci.opensearch.org/ci/dbc/${JOB_NAME}/${version}/${buildId}/${platform}/${architecture}/${distribution}/test-results/${BUILD_NUMBER}/integ-test/test-report.yml <br><br> _Note: Steps to reproduce, additional logs and other files can be found within the above test-report manifest. <br>Instructions of this test-report manifest can be found [here](https://github.com/opensearch-project/opensearch-build/tree/main/src/report_workflow#guide-on-test-report-manifest-from-ci)._"
-                                                createGithubIssue(
-                                                    repoUrl: buildManifestObj.getRepo("${local_component}"),
-                                                    issueTitle: "[AUTOCUT] Integration Test failed for ${local_component}: ${version} ${distribution} distribution",
-                                                    issueBody: issueBodyMessage,
-                                                    label: "autocut,v${version},integ-test-failure"
-                                                )
+                                                if (env.distribution == 'tar') {
+                                                    createGithubIssue(
+                                                        repoUrl: buildManifestObj.getRepo("${local_component}"),
+                                                        issueTitle: "[AUTOCUT] Integration Test failed for ${local_component}: ${version} ${distribution} distribution",
+                                                        issueBody: issueBodyMessage,
+                                                        label: "autocut,v${version},integ-test-failure"
+                                                    )
+                                                }
                                                 throw new Exception("Error running integtest for component ${local_component}", e)
                                             } finally {
                                                 echo "Completed running integtest for component ${local_component}"
@@ -252,6 +248,8 @@ pipeline {
                                         testType: "integ-test",
                                         componentName: "${COMPONENT_NAME}",
                                     )
+                                    echo("Download report manifest from https://ci.opensearch.org/ci/dbc/integ-test/${env.version}/${env.buildId}/${env.platform}/${env.architecture}/${env.distribution}/test-results/${env.BUILD_NUMBER}/integ-test/test-report.yml")
+                                    archiveArtifacts artifacts: 'test-report.yml'
                                 }
                             }
                         }

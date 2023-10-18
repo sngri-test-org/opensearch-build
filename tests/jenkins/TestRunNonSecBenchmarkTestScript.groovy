@@ -26,7 +26,7 @@ class TestRunNonSecBenchmarkTestScript extends BuildPipelineTest{
     void setUp() {
         helper.registerSharedLibrary(
                 library().name('jenkins')
-                        .defaultVersion('5.7.0')
+                        .defaultVersion('5.10.0')
                         .allowOverride(true)
                         .implicit(true)
                         .targetPath('vars')
@@ -61,6 +61,8 @@ class TestRunNonSecBenchmarkTestScript extends BuildPipelineTest{
         binding.setVariable('BUILD_ID', '1234')
         binding.setVariable('BUNDLE_MANIFEST', 'tests/jenkins/data/opensearch-1.3.0-non-security-bundle.yml')
         binding.setVariable('BUNDLE_MANIFEST_URL', 'test://artifact.url')
+        binding.setVariable('DISTRIBUTION_URL', '')
+        binding.setVariable('DISTRIBUTION_VERSION', '')
         binding.setVariable('GITHUB_BOT_TOKEN_NAME', 'bot_token_name')
         binding.setVariable('GITHUB_USER', 'test_user')
         binding.setVariable('GITHUB_TOKEN', 'test_token')
@@ -135,7 +137,7 @@ class TestRunNonSecBenchmarkTestScript extends BuildPipelineTest{
 
         assertThat(testScriptCommands.size(), equalTo(1))
         assertThat(testScriptCommands, hasItem(
-                "./test.sh benchmark-test --bundle-manifest tests/jenkins/data/opensearch-1.3.0-non-security-bundle.yml --config /tmp/workspace/config.yml --workload nyc-taxis --benchmark-config /tmp/workspace/benchmark.ini --user-tag distribution-build-id:1236,arch:x64,os-commit-id:22408088f002a4fc8cdd3b2ed7438866c14c5069,run-type:test,security-enabled:false --without-security   --use-50-percent-heap    --suffix 307 --manager-node-count 3 --data-node-count 3    --data-instance-type r5-4xlarge   --data-node-storage 100   ".toString()
+                "./test.sh benchmark-test --bundle-manifest tests/jenkins/data/opensearch-1.3.0-non-security-bundle.yml   --config /tmp/workspace/config.yml --workload nyc-taxis --benchmark-config /tmp/workspace/benchmark.ini --user-tag distribution-build-id:1236,arch:x64,os-commit-id:22408088f002a4fc8cdd3b2ed7438866c14c5069,run-type:test,security-enabled:false --without-security   --use-50-percent-heap    --suffix 307 --manager-node-count 3 --data-node-count 3    --data-instance-type r5-4xlarge   --data-node-storage 100   ".toString()
         ))
     }
 
