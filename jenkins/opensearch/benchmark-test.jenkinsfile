@@ -234,7 +234,7 @@ pipeline {
                     else {
                         env.HAS_SECURITY = "false"
                         env.ARCHITECTURE = "x64"
-                        env.BUNDLE_MANIFEST = ""
+                        BUNDLE_MANIFEST = ""
                         echo "HAS_SECURITY: ${env.HAS_SECURITY}"
                         lib.jenkins.Messages.new(this).add(JOB_NAME, "Benchmark tests for ${DISTRIBUTION_URL}")
                         currentBuild.description = "Running benchmark test for distribution-url: ${DISTRIBUTION_URL} distribution-version: ${DISTRIBUTION_VERSION}"
